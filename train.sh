@@ -51,13 +51,18 @@ persistent_data_loader_workers=0 # persistent dataloader workers | 容易爆内�
 clip_skip=2                      # clip skip | 玄学 一般用 2
 
 # 优化器设置
-optimizer_type="AdamW8bit" # Optimizer type | 优化器类型 默认为 8bitadam，可选：AdamW AdamW8bit Lion SGDNesterov SGDNesterov8bit DAdaptation AdaFactor
+optimizer_type="AdamW8bit" # Optimizer type | 优化器类型 默认为 AdamW8bit，可选：AdamW AdamW8bit Lion SGDNesterov SGDNesterov8bit DAdaptation AdaFactor
 
 # LyCORIS 训练设置
 algo="lora"  # LyCORIS network algo | LyCORIS 网络算法 可选 lora、loha、lokr、ia3、dylora。lora即为locon
 conv_dim=4   # conv dim | 类似于 network_dim，推荐为 4
 conv_alpha=4 # conv alpha | 类似于 network_alpha，可以采用与 conv_dim 一致或者更小的值
 dropout="0"  # dropout | dropout 概率, 0 为不使用 dropout, 越大则 dropout 越多，推荐 0~0.5， LoHa/LoKr/(IA)^3暂时不支持
+
+# 远程记录设置
+use_wandb=0 # use_wandb | 启用wandb远程记录功能
+wandb_api_key="" # wandb_api_key | API,通过https://wandb.ai/authorize获取
+log_tracker_name="" # log_tracker_name | wandb项目名称,留空则为"network_train"
 
 # ============= DO NOT MODIFY CONTENTS BELOW | 请勿修改下方内容 =====================
 export HF_HOME="huggingface"
@@ -102,6 +107,16 @@ if [[ $stop_text_encoder_training -ne 0 ]]; then extArgs+=("--stop_text_encoder_
 if [[ $noise_offset != "0" ]]; then extArgs+=("--noise_offset $noise_offset"); fi
 
 if [[ $min_snr_gamma -ne 0 ]]; then extArgs+=("--min_snr_gamma $min_snr_gamma"); fi
+
+if [[ $use_wandb == 1 ]]; then 
+  extArgs+=("--log_with=all")
+else
+  extArgs+=("--log_with=tensorboard")
+fi
+
+if [[ $wandb_api_key ]]; then extArgs+=("--wandb_api_key $wandb_api_key"); fi
+
+if [[ $log_tracker_name ]]; then extArgs+=("--log_tracker_name $log_tracker_name"); fi
 
 accelerate launch ${launchArgs[@]} --num_cpu_threads_per_process=8 "./sd-scripts/train_network.py" \
   --enable_bucket \
